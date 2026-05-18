@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>rooms 2003</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="container screen">
+    <img src="assets/thumb.png" alt="oh no" onclick="window.location.replace(`game.html`);" oncontextmenu="return false">
+  </div>
+
+  <div class="container footer">
+    <p>gioco stupido</p>
+    <p><a href="">link inutile</a></p>
+  </div>
+
+  <script> 
+    const audio = new Audio("mus/thumb.ogg");
+    audio.volume = 0.05;
+    audio.loop = true;
+
+    document.addEventListener("click", () =>
+    {
+      audio.play();
+    }, { once: true });
+
+  </script>
+
+</body>
+</html>

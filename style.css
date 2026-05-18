@@ -1,0 +1,75 @@
+*
+{
+    margin: 0;
+    padding: 0;
+}
+
+html
+{
+    overflow: scroll;
+    overflow-x: hidden;
+}
+
+::-webkit-scrollbar {
+    width: 0; 
+    background: transparent;  
+}
+
+body
+{
+    display: flex;
+    flex-direction: column;
+
+    justify-content: center;
+    align-items: center;
+
+    height: 100vh;
+    background-color: black;
+}
+
+.container
+{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 100%;
+}
+
+.footer
+{
+    flex-direction: column;
+}
+
+.screen
+{
+    width: 1000px;
+    height: 750px;
+
+    background-color: #abadb3;
+    border: 5px groove #b9bece;
+    border-radius: 20px;
+
+    margin-bottom: 20px;
+    padding: 20px;
+}
+
+img, canvas
+{
+    width: 1000px;
+    height: 750px;
+
+    border: 5px groove #b9bece;
+    border-radius: 20px;
+}
+
+p
+{
+    text-align: center;
+    color: white;
+}
+
+p a
+{
+    color: whitesmoke;
+}
