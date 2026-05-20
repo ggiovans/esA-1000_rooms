@@ -46,7 +46,7 @@ class Game
     
     this.fadeAlpha = 0;
     this.fadeDirection = 0;
-    this.lightAlpha = Math.floor(Math.random() * 2) == 0? 0 : 0.5;
+    this.lightAlpha = Math.floor(Math.random() * 2) == 0? 0 : 0.9;
 
     this.darkCanvas = document.createElement("canvas");
     this.darkCtx = this.darkCanvas.getContext("2d");
@@ -103,6 +103,7 @@ class Game
       new Room("standard_2locks", "assets/room1.png", 
       [
         new Zone(457, 310, 87, 120, () => this.goToNext()),
+        new Zone(219, 316, 84, 119, () => this.hide()),
       ], 460, 274, 81, 27, "18px"),
 
       new Room("alt_standard_2locks", "assets/room2.png", 
@@ -153,7 +154,8 @@ class Game
         y >= z.y && y <= z.y + z.h
       );
 
-      this.canvas.style.cursor = hoveringDoor ? "pointer" : "default";
+      if(this.lightAlpha < 0.95 || this.flashlight.on)
+        this.canvas.style.cursor = hoveringDoor ? "pointer" : "default";
     });
 
     this.ctx.textBaseline = "middle"; //might be moved if I wanna have subtitles as well
@@ -204,15 +206,10 @@ class Game
     this.sp.playSFX(SFXdoor);
   }
 
-  // hide() 
-  // {
-  //   this.isHidden = true;
-  //   this.showMessage("You hide");
-  //   setTimeout(() => {
-  //     this.isHidden = false;
-  //     this.showMessage("You come out of hiding");
-  //   }, 2000);
-  // }
+  hide() 
+  {
+    console.log("hide");
+  }
 
   // spawnEnemy() 
   // {
@@ -296,15 +293,25 @@ class Game
 
     if(this.flashlight.on)
     {
-      const r = this.flashlight.radius;
+      let r = this.flashlight.radius;
 
       this.darkCtx.globalCompositeOperation = "destination-out";
 
       let g = this.darkCtx.createRadialGradient(this.flashlight.x, this.flashlight.y, 0, this.flashlight.x, this.flashlight.y, r);
 
-      g.addColorStop(0, "rgba(0,0,0,0.37)");
-      g.addColorStop(0.3, "rgba(0,0,0,0.35)");
-      g.addColorStop(1, "rgba(0,0,0,0)");
+      let strenght = [0.37, 0.35, 0];
+
+      if(this.flashlight.batterySegments <= Math.ceil(this.flashlight.maxBatterySegments / 2) || true)
+      {
+        strenght[0] *= Math.min(0.75 * this.flashlight.batterySegments / this.flashlight.maxBatterySegments, 0.4);
+        strenght[1] *= Math.min(0.75 * this.flashlight.batterySegments / this.flashlight.maxBatterySegments, 0.4);
+
+        r = Math.min(this.flashlight.radius * 3.5 * this.flashlight.batterySegments / this.flashlight.maxBatterySegments, this.flashlight.radius);
+      }
+
+      g.addColorStop(0, "rgba(0,0,0," + strenght[0] + ")"); //37, 35, 0
+      g.addColorStop(0.3, "rgba(0,0,0," + strenght[1] + ")");
+      g.addColorStop(1, "rgba(0,0,0," + strenght[2] + ")");
 
       this.darkCtx.fillStyle = g;
 
@@ -315,7 +322,7 @@ class Game
       this.darkCtx.globalCompositeOperation = "source-over";
       this.darkCtx.globalAlpha = 1;
 
-      let glow = this.darkCtx.createRadialGradient(this.flashlight.x, this.flashlight.y, 0, this.flashlight.x, this.flashlight.y, this.flashlight.radius);
+      let glow = this.darkCtx.createRadialGradient(this.flashlight.x, this.flashlight.y, 0, this.flashlight.x, this.flashlight.y, r);
       
       if(!this.flashlight.isGummy)
       {
@@ -334,7 +341,7 @@ class Game
       this.darkCtx.fillStyle = glow;
 
       this.darkCtx.beginPath();
-      this.darkCtx.arc(this.flashlight.x, this.flashlight.y, this.flashlight.radius, 0, Math.PI * 2);
+      this.darkCtx.arc(this.flashlight.x, this.flashlight.y, r, 0, Math.PI * 2);
 
       this.darkCtx.fill();
     }
