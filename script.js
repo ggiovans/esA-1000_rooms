@@ -416,7 +416,7 @@ class Game
     this.nextRoom = newRoom;
     this.fadeDirection = 1;
 
-    this.lightAlpha = Math.min(this.lightAlpha + 0.005, 0.99);
+    this.lightAlpha = Math.min(this.lightAlpha + 0.005, 1);
   }
 }
 
