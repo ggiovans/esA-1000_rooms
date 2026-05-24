@@ -1,6 +1,7 @@
 'use strict';
 
 const BGambience = { path: "ambience.ogg", vol: 0.35 };
+const BGroom100 = { path: "room100amb.mp3", vol: 0.8 };
 
 const SFXa200despawn = { path: "a200despawn.mpeg", vol: 1.0, min: 0.85, max: 1.15};
 const SFXa200spawn = { path: "a200spawn.mpeg", vol: 1.0, min: 0.85, max: 1.15 };
@@ -9,7 +10,8 @@ const SFXcharge = { path: "charge.mpeg", vol: 0.1, min: 0.95, max: 1.05 };
 const SFXfirstdoor = { path: "firstdoor.mpeg", vol: 0.1, min: 0.95, max: 1.05 };
 const SFXdoor = { path: "door.mpeg", vol: 0.35, min: 0.95, max: 1.05 };
 
-const SFXhide = { path: "hide.ogg", vol: 1.0, min: 0.98, max: 1.02 };
+const SFXhideclick = { path: "lockerclick.mp3", vol: 0.5, min: 0.95, max: 1.05 };
+const SFXhide = { path: "hide.ogg", vol: 0.1, min: 0.98, max: 1.02 };
 const SFXtitle = { path: "title.mpeg", vol: 1.0, min: 1, max: 1 };
 
 const SFXflashlight = { path: "flashlight.mpeg", vol: 0.5, min: 0.95, max: 1.05 };
@@ -18,7 +20,7 @@ const SFXfootstepsFabric = { path: "foostepsFabric.mp3", vol: 0.15, min: 0.70, m
 const SFXaltfootstepsFabric = { path: "foostepsFabric2.mp3", vol: 0.15, min: 0.70, max: 1.30 };
 
 const SFXfootstepsMetal = { path: "footstepsMetal.mpeg", vol: 0.15, min: 0.95, max: 1.05 };
-const SFXfootstepsGrass = { path: "footstepsGrass.mpeg", vol: 0.15, min: 0.95, max: 1.05 };
+const SFXfootstepsGrass = { path: "footstepsGrass.mp3", vol: 0.5, min: 0.95, max: 1.05 };
 const SFXfootstepsPlastic = { path: "footstepsPlastic.mpeg", vol: 0.15, min: 0.95, max: 1.05 };
 
 class Game 
@@ -38,8 +40,6 @@ class Game
 
     this.currentRoom.roomLog();
 
-    this.isHidden = false; //replace with character?
-
     this.doorNum = 1;
     this.nextRoom = null;
     this.cooldown = 0;
@@ -53,7 +53,15 @@ class Game
     this.darkCanvas.width = this.canvas.width;
     this.darkCanvas.height = this.canvas.height;
 
-    this.flashlight = new Flashlight(Math.floor(Math.random() * 2) == 0, this.canvas.width, this.canvas.height);
+    this.flashlight = new Flashlight(false, this.canvas.width, this.canvas.height);
+
+    this.hideBG = new Image();
+    this.hideBG.src = "assets/hideBG.png";
+
+    this.hideOverlay = new Image();
+    this.hideOverlay.src = "assets/hide.png";
+
+    this.hiding = false;
 
     this.canvas.addEventListener("mousemove", (e) =>
     {
@@ -109,6 +117,7 @@ class Game
       new Room("alt_standard_2locks", "assets/room2.png", 
       [
         new Zone(457, 310, 87, 120, () => this.goToNext()),
+        new Zone(219, 316, 84, 119, () => this.hide()),
       ], 460, 274, 81, 27, "18px"),    
       
       new Room("r_3locks", "assets/room3.png", 
@@ -134,36 +143,57 @@ class Game
       new Room("alt_r_3locks", "assets/room7.png", 
       [
         new Zone(601, 303, 98, 133, () => this.goToNext()),
-      ], 605, 263, 90, 30, "20px")
+      ], 605, 263, 90, 30, "20px"),
+
+      new Room("room_100", "assets/room100.png",
+      [
+        new Zone(475, 352, 62, 85, () => this.goToNext()),
+        new Zone(174, 389, 96, 45, () => this.getGummy()),
+      ], 478, 327, 56, 19, "15px", 0.8)
     ];
     
-    this.canvas.addEventListener("click", (e) => {
+    this.canvas.addEventListener("click", (e) => 
+    {
+      if (this.clickCooldown > 0)
+        return;
+
       let rect = this.canvas.getBoundingClientRect();
       let x = e.clientX - rect.left, y = e.clientY - rect.top;
-      this.currentRoom.handleClick(x, y);
+      
+      if (this.hiding) 
+      {
+        this.unhide();
+        return;
+      }
+      else 
+      {
+        this.currentRoom.handleClick(x, y);
+      }
     });
 
-    this.canvas.addEventListener("mousemove", (e) =>
-    {
-      let rect = this.canvas.getBoundingClientRect();
-      let x = e.clientX - rect.left;
-      let y = e.clientY - rect.top;
+    // this.canvas.addEventListener("mousemove", (e) => {
+    //   let rect = this.canvas.getBoundingClientRect();
+    //   let x = e.clientX - rect.left;
+    //   let y = e.clientY - rect.top;
 
-      let hoveringDoor = this.currentRoom.zones.some(z =>
-        x >= z.x && x <= z.x + z.w &&
-        y >= z.y && y <= z.y + z.h
-      );
+    //   let hoveringDoor = this.currentRoom.zones.some(z =>
+    //     x >= z.x && x <= z.x + z.w &&
+    //     y >= z.y && y <= z.y + z.h
+    //   );
 
-      if(this.lightAlpha < 0.95 || this.flashlight.on)
-        this.canvas.style.cursor = hoveringDoor ? "pointer" : "default";
-    });
+    //   if (this.lightAlpha < 0.95 || this.flashlight.on)
+    //     this.canvas.style.cursor = (hoveringDoor) ? "pointer" : "default";
+
+    //   if (this.hiding)
+    //     this.canvas.style.cursor = "grab";
+    // });
 
     this.ctx.textBaseline = "middle"; //might be moved if I wanna have subtitles as well
     this.ctx.textAlign = "center";
     this.ctx.fillStyle = "black";
     this.ctx.font = `bold ${this.currentRoom.fontSize} Calibri`;
 
-    this.showMessage("A-" + ((this.doorNum).toString().padStart(3, "0"))); //first load of number tag
+    this.showDoorNum("A-" + ((this.doorNum).toString().padStart(3, "0"))); //first load of number tag
 
     this.loop();
   }
@@ -179,42 +209,59 @@ class Game
         
     tmp.roomLog();
 
-    let sfx = SFXfootstepsFabric;
-    switch(tmp.floor)
-    {
-      case "metal": sfx = SFXfootstepsMetal; break;
-      case "grass": sfx = SFXfootstepsGrass; break;
-      case "plastic": sfx = SFXfootstepsPlastic; break;
-      default: if(Math.floor(Math.random() * 2) == 0) sfx = SFXaltfootstepsFabric;
-    }
-
-    this.sp.playSFX(sfx);
-
     return new Room(tmp.name, tmp.image.src, tmp.zones, tmp.numTag.x, tmp.numTag.y, tmp.numTag.w, tmp.numTag.h, tmp.fontSize, tmp.floor); //wtf is THIS!!
   }
 
   goToNext() 
   {
-    if(this.clickCooldown > 0) 
-      return;
-
     this.clickCooldown = 105;
+    this.sp.playSFX(SFXdoor);
 
     this.doorNum++;
-    this.startTransition(this.randomRoom());
 
-    this.sp.playSFX(SFXdoor);
+    if(this.doorNum == 5)
+    {
+      this.startTransition
+      (
+        new Room("room_100", "assets/room100.png",
+        [
+          new Zone(475, 352, 62, 85, () => this.goToNext()),
+          new Zone(174, 389, 96, 45, () => this.getGummy()),
+          ], 478, 327, 56, 19, "15px", "grass", 0.8)
+      );
+
+      this.sp.playBG(BGroom100, true);
+      return;
+    }
+    else
+    {
+      this.sp.stopBG(); //stops any special ambience
+    }
+
+    this.startTransition(this.randomRoom());
   }
 
   hide() 
   {
-    console.log("hide");
+    this.clickCooldown = 75;
+
+    this.sp.playSFX(SFXhideclick);
+    this.hiding = true;
+    this.sp.playBG(SFXhide, true)
+  }
+
+  unhide() 
+  {
+    this.clickCooldown = 75;
+
+    this.sp.playSFX(SFXhideclick);
+    this.hiding = false;
+    this.sp.stopBG();
   }
 
   // spawnEnemy() 
   // {
-  //   this.showMessage("Enemy appears!");
-  //   // Example: handle movement separately...
+  //   this.showDoorNum("Enemy appears!");
   // }
 
   update()
@@ -228,7 +275,7 @@ class Game
         this.fadeAlpha = 1;
 
         this.currentRoom = this.nextRoom;
-        this.showMessage("A-" + ((this.doorNum).toString().padStart(3, "0")));
+        this.showDoorNum("A-" + ((this.doorNum).toString().padStart(3, "0")));
 
         this.fadeDirection = -1;
       }
@@ -262,7 +309,7 @@ class Game
     }
   }
 
-  draw()  //idfk what any of this does 
+  draw() 
   {
     if (!this.currentRoom.image.complete) return;
 
@@ -283,13 +330,28 @@ class Game
 
     this.ctx.fillText(text, x, y);
 
+    if (this.hiding)
+      this.ctx.drawImage(this.hideBG, 0, 0, this.canvas.width, this.canvas.height);
+
     this.darkCtx.setTransform(1, 0, 0, 1, 0, 0);
     this.darkCtx.clearRect(0, 0, this.darkCanvas.width, this.darkCanvas.height);
 
     this.darkCtx.globalCompositeOperation = "source-over";
-    this.darkCtx.globalAlpha = this.lightAlpha;
+
+    let darknessAlpha = this.lightAlpha;
+
+    if(this.currentRoom.forceAlpha !== 1)
+      darknessAlpha = this.currentRoom.forceAlpha;
+    
+    // if (this.hiding) 
+    //   darknessAlpha = Math.min(darknessAlpha, 0.95);
+
+    this.darkCtx.globalAlpha = darknessAlpha;
     this.darkCtx.fillStyle = "black";
     this.darkCtx.fillRect(0, 0, this.darkCanvas.width, this.darkCanvas.height);
+
+    if (this.hiding)
+      this.ctx.drawImage(this.hideOverlay, 0, 0, this.canvas.width, this.canvas.height);
 
     if(this.flashlight.on)
     {
@@ -300,6 +362,12 @@ class Game
       let g = this.darkCtx.createRadialGradient(this.flashlight.x, this.flashlight.y, 0, this.flashlight.x, this.flashlight.y, r);
 
       let strenght = [0.37, 0.35, 0];
+
+      if (this.hiding) 
+      {
+        strenght[0] *= 1.5;
+        strenght[1] *= 1.5;
+      }
 
       if(this.flashlight.batterySegments <= Math.ceil(this.flashlight.maxBatterySegments / 2) || true)
       {
@@ -354,7 +422,6 @@ class Game
     this.darkCtx.fillRect(0, 0, this.darkCanvas.width, this.darkCanvas.height);
 
     this.ctx.drawImage(this.darkCanvas, 0, 0);
-
     this.drawUI();
   }
 
@@ -392,14 +459,37 @@ class Game
     this.ctx.restore();
   }
 
+  updateCursor() 
+  {
+    if (this.hiding) 
+    {
+      this.canvas.style.cursor = "grab";
+      return;
+    }
+
+    let hoveringDoor = this.currentRoom.zones.some(z => this.flashlight.x >= z.x && this.flashlight.x <= z.x + z.w && this.flashlight.y >= z.y && this.flashlight.y <= z.y + z.h);
+
+    if (this.lightAlpha < 0.95 || this.flashlight.on)
+      this.canvas.style.cursor = hoveringDoor ? "pointer" : "default";
+    else
+      this.canvas.style.cursor = "default";
+  }
+
+  getGummy()
+  {
+    this.flashlight = new Flashlight(true, this.canvas.width, this.canvas.height);
+  }
+
   loop() 
   {
     this.update();
     this.draw();
+    this.updateCursor();
+
     requestAnimationFrame(() => this.loop());
   }
 
-  showMessage(text) 
+  showDoorNum(text) 
   {
     this.message = text;
     console.log(text + " | " + (Math.round((this.lightAlpha + Number.EPSILON) * 100) / 100));
@@ -417,6 +507,17 @@ class Game
     this.fadeDirection = 1;
 
     this.lightAlpha = Math.min(this.lightAlpha + 0.005, 1);
+
+    let sfx = SFXfootstepsFabric;
+    switch (newRoom.floor) 
+    {
+      case "metal": sfx = SFXfootstepsMetal; break;
+      case "grass": sfx = SFXfootstepsGrass; break;
+      case "plastic": sfx = SFXfootstepsPlastic; break;
+      default: if (Math.floor(Math.random() * 2) == 0) sfx = SFXaltfootstepsFabric;
+    }
+
+    this.sp.playSFX(sfx);
   }
 }
 

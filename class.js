@@ -39,22 +39,23 @@ class Zone
     return px >= this.x && px <= this.x + this.w && py >= this.y && py <= this.y + this.h;
   }
   
-  draw(ctx) 
-  {
-    ctx.strokeStyle = "transparent"; //transparent when finished
-    ctx.strokeRect(this.x, this.y, this.w, this.h);
-  }
+  // draw(ctx) 
+  // {
+  //   ctx.strokeStyle = "transparent"; //transparent when finished
+  //   ctx.strokeRect(this.x, this.y, this.w, this.h);
+  // }
 }
 
 class Room 
 {
-  constructor(name, imageSrc, zones = [], numTagX, numTagY, numTagW, numTagH, fontSize, floor = "fabric") 
+  constructor(name, imageSrc, zones = [], numTagX, numTagY, numTagW, numTagH, fontSize, floor = "fabric", forceAlpha = 1) //0 for fullbright, 1 for standard.
   {
     this.name = name;
     this.image = new Image();
     this.image.src = imageSrc;
     this.zones = zones;  
     this.floor = floor;
+    this.forceAlpha = forceAlpha;
 
     this.numTag = { x: numTagX, y: numTagY, w: numTagW, h: numTagH }; //ts SUCKS!!! so unoptimized BRUH!!
     this.fontSize = fontSize;
@@ -63,7 +64,7 @@ class Room
   draw(ctx) 
   {
     ctx.drawImage(this.image, 0, 0);
-    this.zones.forEach(z => z.draw(ctx));
+    //this.zones.forEach(z => z.draw(ctx));
   }
 
   handleClick(x, y) 
@@ -98,8 +99,7 @@ class SoundPlayer
 {
   constructor()
   {
-    let bg = null;
-    let a = null;
+    this.bufferbg = null;
   }
 
   playSFX(audio)
@@ -115,21 +115,37 @@ class SoundPlayer
 
     console.log(audio.path, (Math.round((a.volume + Number.EPSILON) * 100) / 100), (Math.round((a.playbackRate + Number.EPSILON) * 100) / 100));
 
-    a.play();
+    a.play().catch(() => {});
   }
   
-  playBG(audio)
+  playBG(audio, buffer)
   {
     let bg = new Audio("mus/"+audio.path);
     bg.volume = audio.vol;
     bg.loop = true;
 
-    bg.play();
+    if(buffer)
+    {
+      if (this.bufferbg) 
+      {
+        this.bufferbg.pause();
+        this.bufferbg.currentTime = 0;
+      }
+
+    this.bufferbg = bg;
+  }
+
+    bg.play().catch(() => { });
   }
 
   stopBG()
   {
-    this.bg.pause();
-    this.bg.currentTime = 0;
+    if (!this.bufferbg)
+      return;
+
+    this.bufferbg.pause();
+    this.bufferbg.currentTime = 0;
+
+    this.bufferbg = null;
   }
 }
