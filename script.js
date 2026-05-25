@@ -23,6 +23,8 @@ const SFXfootstepsMetal = { path: "footstepsMetal.mpeg", vol: 0.15, min: 0.95, m
 const SFXfootstepsGrass = { path: "footstepsGrass.mp3", vol: 0.5, min: 0.95, max: 1.05 };
 const SFXfootstepsPlastic = { path: "footstepsPlastic.mpeg", vol: 0.15, min: 0.95, max: 1.05 };
 
+const TIME_SCALE = 1.6;
+
 class Game 
 {
   constructor(canvasId) 
@@ -32,16 +34,24 @@ class Game
     this.canvas = document.getElementById(canvasId);
     this.ctx = this.canvas.getContext("2d");
     this.rooms = [];
+    this.specialRooms = [];
+
     this.currentRoom = new Room("lobby", "assets/room0.png", 
       [
         new Zone(466, 349, 69, 94, () => this.goToNext()),
-      ], 469, 321, 63, 21, "15px"
+      ], 
+      [
+        new BatteryZone(104, 459, 27, 12, 0.2)
+      ], 
+      469, 321, 63, 21, "15px", "fabric", 0
     );
 
     this.currentRoom.roomLog();
 
     this.doorNum = 1;
-    this.nextRoom = null;
+    this.nextRoom = null; 
+    this.lastFrame = performance.now();
+    this.dt = 1;
     this.cooldown = 0;
     
     this.fadeAlpha = 0;
@@ -54,6 +64,8 @@ class Game
     this.darkCanvas.height = this.canvas.height;
 
     this.flashlight = new Flashlight(false, this.canvas.width, this.canvas.height);
+    this.batteryCount = 0;
+    this.dispenderActive = false;
 
     this.hideBG = new Image();
     this.hideBG.src = "assets/hideBG.png";
@@ -61,7 +73,19 @@ class Game
     this.hideOverlay = new Image();
     this.hideOverlay.src = "assets/hide.png";
 
+    this.batteryImg = new Image();
+    this.batteryImg.src = "assets/battery.png";
+
+    this.flashdrop = new Image();
+    this.flashdrop.src = "assets/flashdrop.png";
+
+    this.gummydrop = new Image();
+    this.gummydrop.src = "assets/gummydrop.png";
+
     this.hiding = false;
+
+    this.subtitle = "";
+    this.subtitleTimer = 0;
 
     this.canvas.addEventListener("mousemove", (e) =>
     {
@@ -92,9 +116,9 @@ class Game
         {
           this.flashlight.batterySegments = Math.min(this.flashlight.batterySegments + 12, this.flashlight.maxBatterySegments);
         }
-        else if(this.flashlight.batteryCount > 0)
+        else if(this.batteryCount > 0)
         {
-          this.flashlight.batteryCount--;
+          this.batteryCount--;
           this.flashlight.batterySegments = 4;
           this.flashlight.drain = 0;
         }
@@ -112,44 +136,81 @@ class Game
       [
         new Zone(457, 310, 87, 120, () => this.goToNext()),
         new Zone(219, 316, 84, 119, () => this.hide()),
+      ],
+      [
+        new BatteryZone(104, 459, 27, 12, 1)
       ], 460, 274, 81, 27, "18px"),
 
       new Room("alt_standard_2locks", "assets/room2.png", 
       [
         new Zone(457, 310, 87, 120, () => this.goToNext()),
         new Zone(219, 316, 84, 119, () => this.hide()),
+      ],
+      [
+        new BatteryZone(104, 459, 27, 12, 0.2)
       ], 460, 274, 81, 27, "18px"),    
       
       new Room("r_3locks", "assets/room3.png", 
       [
         new Zone(301, 303, 97, 133, () => this.goToNext()),
+      ],
+      [
+        new BatteryZone(104, 459, 27, 12, 0.2)
       ], 305, 263, 90, 30, "20px"),
 
       new Room("r_corner_table", "assets/room4.png", 
       [
         new Zone(405, 347, 60, 82, () => this.goToNext()),
+      ],
+      [
+        new BatteryZone(104, 459, 27, 12, 0.2)
       ], 407, 323, 55, 18, "14px"),
 
       new Room("hallway", "assets/room5.png", 
       [
         new Zone(479, 357, 88, 120, () => this.goToNext()),
+      ],
+      [
+        new BatteryZone(104, 459, 27, 12, 0.2)
       ], 483, 321, 80, 27, "18px"),
 
       new Room("alt_r_corner_table", "assets/room6.png", 
       [
         new Zone(535, 347, 60, 82, () => this.goToNext()),
+      ],
+      [
+        new BatteryZone(104, 459, 27, 12, 0.2)
       ], 538, 323, 55, 18, "14px"),
 
       new Room("alt_r_3locks", "assets/room7.png", 
       [
         new Zone(601, 303, 98, 133, () => this.goToNext()),
+      ],
+      [
+        new BatteryZone(104, 459, 27, 12, 0.2)
       ], 605, 263, 90, 30, "20px"),
 
       new Room("room_100", "assets/room100.png",
       [
         new Zone(475, 352, 62, 85, () => this.goToNext()),
         new Zone(174, 389, 96, 45, () => this.getGummy()),
-      ], 478, 327, 56, 19, "15px", 0.8)
+      ],
+      [
+        new BatteryZone(104, 459, 27, 12, 0.2)
+      ], 478, 327, 56, 19, "15px", "grass", 0.8)
+    ];
+
+    this.specialRooms = 
+    [
+      new Room("room_100", "assets/room100.png",
+      [
+        new Zone(475, 352, 62, 85, () => this.goToNext()),
+        new Zone(174, 389, 96, 45, () => this.getGummy()),
+      ], 
+      [
+        new BatteryZone(104, 459, 27, 12, 0.2)
+      ],
+      478, 327, 56, 19, "15px", "grass", 0.8)
     ];
     
     this.canvas.addEventListener("click", (e) => 
@@ -165,10 +226,19 @@ class Game
         this.unhide();
         return;
       }
-      else 
+
+      for (let z of (this.currentRoom.batteryZones || [])) 
       {
-        this.currentRoom.handleClick(x, y);
+        if (z.isIn(x, y)) 
+        {
+          z.collect();
+          this.batteryCount++;
+          return;
+        }
       }
+      
+      this.currentRoom.handleClick(x, y);
+      
     });
 
     // this.canvas.addEventListener("mousemove", (e) => {
@@ -195,6 +265,10 @@ class Game
 
     this.showDoorNum("A-" + ((this.doorNum).toString().padStart(3, "0"))); //first load of number tag
 
+    for (let z of this.currentRoom.batteryZones) {
+      z.roll();
+    }
+
     this.loop();
   }
 
@@ -209,7 +283,7 @@ class Game
         
     tmp.roomLog();
 
-    return new Room(tmp.name, tmp.image.src, tmp.zones, tmp.numTag.x, tmp.numTag.y, tmp.numTag.w, tmp.numTag.h, tmp.fontSize, tmp.floor); //wtf is THIS!!
+    return new Room(tmp.name, tmp.image.src, tmp.zones, tmp.batteryZones, tmp.numTag.x, tmp.numTag.y, tmp.numTag.w, tmp.numTag.h, tmp.fontSize, tmp.floor, tmp.forceAlpha); //wtf is THIS!!
   }
 
   goToNext() 
@@ -219,25 +293,11 @@ class Game
 
     this.doorNum++;
 
-    if(this.doorNum == 5)
+    switch(this.doorNum)
     {
-      this.startTransition
-      (
-        new Room("room_100", "assets/room100.png",
-        [
-          new Zone(475, 352, 62, 85, () => this.goToNext()),
-          new Zone(174, 389, 96, 45, () => this.getGummy()),
-          ], 478, 327, 56, 19, "15px", "grass", 0.8)
-      );
-
-      this.sp.playBG(BGroom100, true);
-      return;
+      case 10: this.startTransition(this.specialRooms[0]); return;
     }
-    else
-    {
-      this.sp.stopBG(); //stops any special ambience
-    }
-
+    
     this.startTransition(this.randomRoom());
   }
 
@@ -268,13 +328,19 @@ class Game
   {
     if(this.fadeDirection !== 0)
     {
-      this.fadeAlpha += 0.025 * this.fadeDirection;
+      this.fadeAlpha += 0.025 * this.fadeDirection * this.dt * TIME_SCALE;
 
       if(this.fadeAlpha >= 1)
       {
         this.fadeAlpha = 1;
 
         this.currentRoom = this.nextRoom;
+
+        for (let z of this.currentRoom.batteryZones) 
+        {
+          z.roll();
+        }
+
         this.showDoorNum("A-" + ((this.doorNum).toString().padStart(3, "0")));
 
         this.fadeDirection = -1;
@@ -289,12 +355,12 @@ class Game
 
     if(this.clickCooldown > 0)
     {
-      this.clickCooldown--;
+      this.clickCooldown -= this.dt * TIME_SCALE;
     }
 
     if(this.flashlight.on)
     {
-      this.flashlight.drain += this.flashlight.drainFactor;
+      this.flashlight.drain += this.flashlight.drainFactor * this.dt * TIME_SCALE;
     }
 
     if(this.flashlight.drain >= 25)
@@ -306,6 +372,17 @@ class Game
     if(this.flashlight.batterySegments <= 0)
     {
       this.flashlight.on = false;
+    }
+
+    if (this.subtitleTimer > 0) 
+    {
+      this.subtitleTimer -= this.dt;
+
+      if (this.subtitleTimer <= 0) 
+      {
+        this.subtitle = "";
+        this.subtitleTimer = 0;
+      }
     }
   }
 
@@ -332,6 +409,11 @@ class Game
 
     if (this.hiding)
       this.ctx.drawImage(this.hideBG, 0, 0, this.canvas.width, this.canvas.height);
+
+    for (let z of this.currentRoom.batteryZones) 
+    {
+      z.draw(this.ctx, this.batteryImg);
+    }
 
     this.darkCtx.setTransform(1, 0, 0, 1, 0, 0);
     this.darkCtx.clearRect(0, 0, this.darkCanvas.width, this.darkCanvas.height);
@@ -448,13 +530,38 @@ class Game
       this.ctx.fillRect(x + 4 + i * (segW + gap), y + 4, segW, segH - 8);
     }
 
-    if(!this.flashlight.isGummy && this.flashlight.batteryCount > 0)
+    if(!this.flashlight.isGummy && this.batteryCount > 0)
     {
       this.ctx.font = "24px Calibri";
       this.ctx.textAlign = "left";
       this.ctx.textBaseline = "middle";
-      this.ctx.fillText("X" + this.flashlight.batteryCount, x + 105, y + segH / 2);
+      this.ctx.fillText("" + this.batteryCount, x + 105, y + segH / 2);
     }
+
+    this.ctx.restore(); 
+
+    this.drawSubtitles();
+  }
+
+  drawSubtitles() 
+  {
+    if (!this.subtitle)
+      return;
+
+    this.ctx.save();
+
+    this.ctx.font = "22px Calibri";
+    this.ctx.textAlign = "center";
+    this.ctx.textBaseline = "middle";
+
+    let h = 46;
+    let y = this.canvas.height - 90;
+
+    this.ctx.fillStyle = "#0000001e";
+    this.ctx.fillText(this.subtitle, this.canvas.width / 2 - 2, y + h / 2 + 2);
+
+    this.ctx.fillStyle = "#FFDEBD";
+    this.ctx.fillText(this.subtitle, this.canvas.width / 2, y + h / 2);
 
     this.ctx.restore();
   }
@@ -477,16 +584,37 @@ class Game
 
   getGummy()
   {
-    this.flashlight = new Flashlight(true, this.canvas.width, this.canvas.height);
+    if(!this.dispenderActive)
+    {
+      if (this.batteryCount < 5) 
+      {
+        this.showSubtitle("You don't have enough batteries.");
+        return;
+      }
+
+      this.batteryCount -= 5;
+      this.dispenderActive = true;
+      this.showSubtitle("You inserted 5 batteries into the dispenser... Something came out.");
+
+      this.showGummy();
+    }
+    else
+    {
+      this.flashlight = new Flashlight(!this.flashlight.isGummy, this.canvas.width, this.canvas.height); 
+      this.showSubtitle(this.flashlight.isGummy ? "Gummy Flashlight. Infinite battery with a much shorter durability. Recharge at any time with R." : "You picked up back the normal flashlight.");
+    }
   }
 
-  loop() 
+  loop(now = performance.now()) 
   {
+    this.dt = Math.min((now - this.lastFrame) / 16.666, 3);
+    this.lastFrame = now;
+
     this.update();
     this.draw();
     this.updateCursor();
 
-    requestAnimationFrame(() => this.loop());
+    requestAnimationFrame((t) => this.loop(t));
   }
 
   showDoorNum(text) 
@@ -495,9 +623,15 @@ class Game
     console.log(text + " | " + (Math.round((this.lightAlpha + Number.EPSILON) * 100) / 100));
   }
 
-  doorAnimation() //maybe another time :P
-  {
+  // doorAnimation() //maybe another time :P
+  // {
 
+  // }
+
+  showSubtitle(text, duration = 180) 
+  {
+    this.subtitle = text;
+    this.subtitleTimer = duration;
   }
 
   startTransition(newRoom)
@@ -518,6 +652,12 @@ class Game
     }
 
     this.sp.playSFX(sfx);
+
+    switch (newRoom.name)
+    {
+      case "room_100": this.sp.playBG(BGroom100, true); break;
+      default: this.sp.stopBG(); break;
+    }
   }
 }
 
@@ -532,4 +672,6 @@ window.onload = () =>
   }, 1800);
 
   game.sp.playSFX(SFXfirstdoor);
+  game.showSubtitle("Click to interact. Press F to use the flashlight. Press R to recharge (consumes batteries).", 360);
 };
+

@@ -18,7 +18,6 @@ class Flashlight
     this.segW = isGummy? 1 : 18;
     this.gap = isGummy? 0 : 4;
 
-    this.batteryCount = 3;
     this.drain = 0;
   }
 }
@@ -46,14 +45,53 @@ class Zone
   // }
 }
 
+class BatteryZone 
+{
+  constructor(x, y, w, h, chance = 0.2) 
+  {
+    this.x = x; this.y = y; this.w = w; this.h = h;
+    this.chance = chance;
+
+    this.spawned = false;
+    this.collected = false;
+  }
+
+  roll() 
+  {
+    this.spawned = Math.random() < this.chance;
+    this.collected = false;
+  }
+
+  draw(ctx, img) 
+  {
+    ctx.strokeStyle = "transparent"; //transparent when finished
+    ctx.strokeRect(this.x, this.y, this.w, this.h);
+   
+    if (!this.spawned || this.collected) return;
+    ctx.drawImage(img, this.x, this.y, this.w, this.h);
+  }
+
+  isIn(px, py) 
+  {
+    return this.spawned && !this.collected &&
+      px >= this.x && px <= this.x + this.w &&
+      py >= this.y && py <= this.y + this.h;
+  }
+
+  collect() {
+    this.collected = true;
+  }
+}
+
 class Room 
 {
-  constructor(name, imageSrc, zones = [], numTagX, numTagY, numTagW, numTagH, fontSize, floor = "fabric", forceAlpha = 1) //0 for fullbright, 1 for standard.
+  constructor(name, imageSrc, zones = [], batteryZones = [], numTagX, numTagY, numTagW, numTagH, fontSize, floor = "fabric", forceAlpha = 1) //0 for fullbright, 1 for standard.
   {
     this.name = name;
     this.image = new Image();
     this.image.src = imageSrc;
     this.zones = zones;  
+    this.batteryZones = batteryZones;
     this.floor = floor;
     this.forceAlpha = forceAlpha;
 
