@@ -1,6 +1,6 @@
 'use strict';
 
-const BGambience = { path: "ambience.ogg", vol: 0.35 };
+// const BGambience = { path: "ambience.ogg", vol: 0.35 };
 const BGroom100 = { path: "room100amb.mp3", vol: 0.8 };
 
 const SFXa200despawn = { path: "a200despawn.mpeg", vol: 1.0, min: 0.85, max: 1.15};
@@ -41,7 +41,14 @@ class Game
         new Zone(466, 349, 69, 94, () => this.goToNext()),
       ], 
       [
-        new BatteryZone(104, 459, 27, 12, 0.2)
+        new BatteryZone(104, 445, 27, 1),
+        new BatteryZone(260, 411, 17),
+        new BatteryZone(16, 564),
+        new BatteryZone(6, 410),
+        new BatteryZone(722, 410, 17),
+        new BatteryZone(873, 444),
+        new BatteryZone(968, 412),
+        new BatteryZone(958, 567)
       ], 
       469, 321, 63, 21, "15px", "fabric", 0
     );
@@ -72,9 +79,6 @@ class Game
 
     this.hideOverlay = new Image();
     this.hideOverlay.src = "assets/hide.png";
-
-    this.batteryImg = new Image();
-    this.batteryImg.src = "assets/battery.png";
 
     this.flashdrop = new Image();
     this.flashdrop.src = "assets/flashdrop.png";
@@ -109,18 +113,28 @@ class Game
     {
       if(e.key.toLowerCase() === "r")
       {
-        this.sp.playSFX(SFXcharge); //replace with battery recharge
+        if (this.cooldown > 0)
+          return;
+
         this.flashlight.on = this.flashlight.wasOn;
 
         if(this.flashlight.isGummy)
         {
+          this.cooldown = 15;
+
+          this.sp.playSFX(SFXcharge); 
           this.flashlight.batterySegments = Math.min(this.flashlight.batterySegments + 12, this.flashlight.maxBatterySegments);
         }
         else if(this.batteryCount > 0)
         {
+          this.cooldown = 70;
+
+          this.sp.playSFX(SFXcharge); 
+
           this.batteryCount--;
           this.flashlight.batterySegments = 4;
           this.flashlight.drain = 0;
+
         }
       }
     });
@@ -136,68 +150,117 @@ class Game
       [
         new Zone(457, 310, 87, 120, () => this.goToNext()),
         new Zone(219, 316, 84, 119, () => this.hide()),
+        new Zone(698, 316, 84, 119, () => this.hide())
       ],
       [
-        new BatteryZone(104, 459, 27, 12, 1)
-      ], 460, 274, 81, 27, "18px"),
+        new BatteryZone(3, 471),
+        new BatteryZone(970, 467),
+        new BatteryZone(320, 417, 18),
+        new BatteryZone(662, 417, 18)
+      ], 
+      460, 274, 81, 27, "18px"),
 
       new Room("alt_standard_2locks", "assets/room2.png", 
       [
         new Zone(457, 310, 87, 120, () => this.goToNext()),
         new Zone(219, 316, 84, 119, () => this.hide()),
+        new Zone(698, 316, 84, 119, () => this.hide())
       ],
       [
-        new BatteryZone(104, 459, 27, 12, 0.2)
-      ], 460, 274, 81, 27, "18px"),    
+        new BatteryZone(3, 471),
+        new BatteryZone(970, 467),
+        new BatteryZone(320, 417, 18),
+        new BatteryZone(662, 417, 18)
+      ], 
+      460, 274, 81, 27, "18px"),    
       
       new Room("r_3locks", "assets/room3.png", 
       [
         new Zone(301, 303, 97, 133, () => this.goToNext()),
+        new Zone(492, 333, 184, 85, () => this.hide())
       ],
       [
-        new BatteryZone(104, 459, 27, 12, 0.2)
-      ], 305, 263, 90, 30, "20px"),
+        new BatteryZone(186, 418),
+        new BatteryZone(472, 407, 16),
+        new BatteryZone(677, 408, 15)
+      ], 
+      305, 263, 90, 30, "20px"),
 
       new Room("r_corner_table", "assets/room4.png", 
       [
         new Zone(405, 347, 60, 82, () => this.goToNext()),
       ],
       [
-        new BatteryZone(104, 459, 27, 12, 0.2)
-      ], 407, 323, 55, 18, "14px"),
+        new BatteryZone(331, 416, 17), //27 is standard, please remember
+        new BatteryZone(524, 416, 17),
+        new BatteryZone(580, 462, 24),
+        new BatteryZone(746, 391),
+        new BatteryZone(843, 394),
+        new BatteryZone(781, 492),
+        new BatteryZone(883, 488)
+      ], 
+      407, 323, 55, 18, "14px"),
 
       new Room("hallway", "assets/room5.png", 
       [
         new Zone(479, 357, 88, 120, () => this.goToNext()),
       ],
       [
-        new BatteryZone(104, 459, 27, 12, 0.2)
-      ], 483, 321, 80, 27, "18px"),
+        new BatteryZone(336, 463, 18),
+        new BatteryZone(687, 464, 18),
+        new BatteryZone(757, 458),
+        new BatteryZone(808, 479),
+        new BatteryZone(911, 478),
+        new BatteryZone(749, 568),
+        new BatteryZone(872, 567),
+        new BatteryZone(818, 626),
+        new BatteryZone(946, 625)
+      ], 
+      483, 321, 80, 27, "18px"),
 
       new Room("alt_r_corner_table", "assets/room6.png", 
       [
         new Zone(535, 347, 60, 82, () => this.goToNext()),
       ],
       [
-        new BatteryZone(104, 459, 27, 12, 0.2)
-      ], 538, 323, 55, 18, "14px"),
+        new BatteryZone(652, 416, 17), //27 is standard, please remember
+        new BatteryZone(459, 416, 17),
+        new BatteryZone(396, 462, 24),
+        new BatteryZone(227, 391),
+        new BatteryZone(130, 394),
+        new BatteryZone(192, 492),
+        new BatteryZone(90, 488)
+      ], 
+      538, 323, 55, 18, "14px"),
 
       new Room("alt_r_3locks", "assets/room7.png", 
       [
         new Zone(601, 303, 98, 133, () => this.goToNext()),
+        new Zone(324, 333, 184, 85, () => this.hide())
       ],
       [
-        new BatteryZone(104, 459, 27, 12, 0.2)
-      ], 605, 263, 90, 30, "20px"),
+        new BatteryZone(787, 418),
+        new BatteryZone(512, 407, 16),
+        new BatteryZone(308, 408, 15)
+      ], 
+      605, 263, 90, 30, "20px"),
 
-      new Room("room_100", "assets/room100.png",
+      new Room("room_100", "assets/room100.png", //remove later
       [
         new Zone(475, 352, 62, 85, () => this.goToNext()),
         new Zone(174, 389, 96, 45, () => this.getGummy()),
       ],
       [
-        new BatteryZone(104, 459, 27, 12, 0.2)
-      ], 478, 327, 56, 19, "15px", "grass", 0.8)
+        new BatteryZone(154, 484, 27, 1),
+        new BatteryZone(297, 481, 20),
+        new BatteryZone(907, 501),
+        new BatteryZone(878, 431),
+        new BatteryZone(772, 425),
+        new BatteryZone(606, 376, 16),
+        new BatteryZone(613, 331, 15),
+        new BatteryZone(809, 502)
+      ], 
+      478, 327, 56, 19, "15px", "grass", 0.8)
     ];
 
     this.specialRooms = 
@@ -208,14 +271,21 @@ class Game
         new Zone(174, 389, 96, 45, () => this.getGummy()),
       ], 
       [
-        new BatteryZone(104, 459, 27, 12, 0.2)
+        new BatteryZone(154, 484, 27, 1),
+        new BatteryZone(297, 481, 20),
+        new BatteryZone(907, 501),
+        new BatteryZone(878, 431),
+        new BatteryZone(772, 425),
+        new BatteryZone(606, 376, 16),
+        new BatteryZone(613, 331, 15),
+        new BatteryZone(809, 502)
       ],
       478, 327, 56, 19, "15px", "grass", 0.8)
     ];
     
     this.canvas.addEventListener("click", (e) => 
     {
-      if (this.clickCooldown > 0)
+      if (this.cooldown > 0)
         return;
 
       let rect = this.canvas.getBoundingClientRect();
@@ -232,7 +302,7 @@ class Game
         if (z.isIn(x, y)) 
         {
           z.collect();
-          this.batteryCount++;
+          this.batteryCount += z.qta;
           return;
         }
       }
@@ -288,7 +358,7 @@ class Game
 
   goToNext() 
   {
-    this.clickCooldown = 105;
+    this.cooldown = 105;
     this.sp.playSFX(SFXdoor);
 
     this.doorNum++;
@@ -303,7 +373,7 @@ class Game
 
   hide() 
   {
-    this.clickCooldown = 75;
+    this.cooldown = 75;
 
     this.sp.playSFX(SFXhideclick);
     this.hiding = true;
@@ -312,7 +382,7 @@ class Game
 
   unhide() 
   {
-    this.clickCooldown = 75;
+    this.cooldown = 75;
 
     this.sp.playSFX(SFXhideclick);
     this.hiding = false;
@@ -353,9 +423,9 @@ class Game
       }
     }
 
-    if(this.clickCooldown > 0)
+    if(this.cooldown > 0)
     {
-      this.clickCooldown -= this.dt * TIME_SCALE;
+      this.cooldown -= this.dt * TIME_SCALE;
     }
 
     if(this.flashlight.on)
@@ -407,13 +477,13 @@ class Game
 
     this.ctx.fillText(text, x, y);
 
-    if (this.hiding)
-      this.ctx.drawImage(this.hideBG, 0, 0, this.canvas.width, this.canvas.height);
-
     for (let z of this.currentRoom.batteryZones) 
     {
-      z.draw(this.ctx, this.batteryImg);
+      z.draw(this.ctx);
     }
+
+    if (this.hiding)
+      this.ctx.drawImage(this.hideBG, 0, 0, this.canvas.width, this.canvas.height);
 
     this.darkCtx.setTransform(1, 0, 0, 1, 0, 0);
     this.darkCtx.clearRect(0, 0, this.darkCanvas.width, this.darkCanvas.height);
@@ -570,14 +640,15 @@ class Game
   {
     if (this.hiding) 
     {
-      this.canvas.style.cursor = "grab";
+      this.canvas.style.cursor = "grab"; //replace with custom
       return;
     }
 
     let hoveringDoor = this.currentRoom.zones.some(z => this.flashlight.x >= z.x && this.flashlight.x <= z.x + z.w && this.flashlight.y >= z.y && this.flashlight.y <= z.y + z.h);
+    let hoveringBattery = this.currentRoom.batteryZones.some(z => this.flashlight.x >= z.x && this.flashlight.x <= z.x + z.w && this.flashlight.y >= z.y && this.flashlight.y <= z.y + z.h && !z.collected && z.spawned);
 
     if (this.lightAlpha < 0.95 || this.flashlight.on)
-      this.canvas.style.cursor = hoveringDoor ? "pointer" : "default";
+      this.canvas.style.cursor = hoveringDoor ? "pointer" : hoveringBattery? "grab" : "default";
     else
       this.canvas.style.cursor = "default";
   }

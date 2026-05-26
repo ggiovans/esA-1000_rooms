@@ -13,8 +13,8 @@ class Flashlight
     this.color = isGummy ? "#5bfaa2" : "#FFFFFF"; 
 
     this.maxBatterySegments = isGummy ? 84 : 4;
-    this.batterySegments = isGummy ? 84 : 4;
-    this.drainFactor = isGummy ? 2 : 0.01;
+    this.batterySegments = isGummy ? 32 : 1;
+    this.drainFactor = isGummy ? 3 : 0.01;
     this.segW = isGummy? 1 : 18;
     this.gap = isGummy? 0 : 4;
 
@@ -37,38 +37,63 @@ class Zone
   {
     return px >= this.x && px <= this.x + this.w && py >= this.y && py <= this.y + this.h;
   }
-  
-  // draw(ctx) 
-  // {
-  //   ctx.strokeStyle = "transparent"; //transparent when finished
-  //   ctx.strokeRect(this.x, this.y, this.w, this.h);
-  // }
 }
 
 class BatteryZone 
 {
-  constructor(x, y, w, h, chance = 0.2) 
+  constructor(x, y, s = 27, chance = 0.01) 
   {
-    this.x = x; this.y = y; this.w = w; this.h = h;
+    this.x = x; this.y = y; this.w = s; this.h = s;
     this.chance = chance;
 
     this.spawned = false;
     this.collected = false;
+
+    this.image = new Image();
+    this.image.src = "assets/battery.png";
+
+    this.flip = false;
+
+    this.qta = 1;
   }
 
   roll() 
   {
     this.spawned = Math.random() < this.chance;
     this.collected = false;
+
+    if((Math.floor(Math.random() * 3) == 0)) 
+      this.image.src = "assets/altbattery.png";
+
+    if ((Math.floor(Math.random() * 50) == 0))
+    {
+      this.image.src = "assets/2battery.png";
+      this.qta = 2;
+    }
+
+    this.flip = Math.floor(Math.random() * 2) == 0;
   }
 
-  draw(ctx, img) 
+  draw(ctx) 
   {
-    ctx.strokeStyle = "transparent"; //transparent when finished
-    ctx.strokeRect(this.x, this.y, this.w, this.h);
+    // ctx.strokeStyle = "red"; //transparent when finished
+    // ctx.strokeRect(this.x, this.y, this.w, this.h);
    
     if (!this.spawned || this.collected) return;
-    ctx.drawImage(img, this.x, this.y, this.w, this.h);
+
+    ctx.save();
+
+    if(this.flip)
+    {
+      ctx.scale(-1, 1);
+      ctx.drawImage(this.image, -this.x - this.w, this.y, this.w, this.h);
+    }
+    else
+    {
+      ctx.drawImage(this.image, this.x, this.y, this.w, this.h);
+    }
+
+    ctx.restore();
   }
 
   isIn(px, py) 
